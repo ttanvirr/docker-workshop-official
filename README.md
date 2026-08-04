@@ -1,3 +1,9 @@
+# Table of Contents
+
+1. [Overview](#overview-of-the-docker-workshop)
+2. [Part 1: Containerize an application](#part-1-containarize-an-application)
+3. [Part 2: Update the application](#part-2-update-the-application)
+
 # Overview of the Docker workshop
 
 This workshop contains step-by-step instructions on how to get started with Docker. We'll be working with a simple 'todo list manager' that runs on `Node.js`. This workshop shows you how to:
@@ -98,3 +104,83 @@ If you take a quick look at your containers on Docker Desktop (or using `docker 
 ## Summary
 
 In this section, you learned the basics about creating a `Dockerfile` to build an image. Then you started a container and saw the running app.
+
+# Part 2: Update the application
+
+In this part, you'll update the application and image. You'll also learn how to stop and remove a container.
+
+## Update the source code
+
+In the following steps, you'll change the "empty text" when you don't have any todo list items to "You have no todo items yet! Add one above!"
+
+1. In the `src/static/js/app.js` file, update line 56 (may differ) to use the new empty text.
+
+```
+- <p className="text-center">No items yet! Add one above!</p>
++ <p className="text-center">You have no todo items yet! Add one above!</p>
+```
+
+2. Build your updated version of the image, using the `docker build` command.
+
+```bash
+$ docker build -t getting-started .
+```
+
+3. Start a new container using the updated code.
+
+```bash
+$ docker run -dp 127.0.0.1:3000:3000 getting-started
+```
+
+You probably saw an error like this:
+
+```bash
+docker: Error response from daemon:......: Bind for 127.0.0.1:3000 failed: port is already allocated.
+```
+
+The reason is that the old container is already using the host's port `3000` and only one process on the machine (containers included) can listen to a specific port. To fix this, you need to remove the old container.
+
+## Remove the old container
+
+To remove a container, you first need to stop it. Then, you can remove it.
+
+You can remove the old container using the CLI or Docker Desktop's graphical interface.
+
+### Method-1: Remove a container using the CLI
+
+1. Get the ID of the container by using the `docker ps -a` command.
+
+2. Use the `docker stop` command to stop the container.
+
+```bash
+$ docker stop <the-container-id>
+```
+
+3. Once the container has stopped, you can remove it by using the `docker rm` command.
+
+```bash
+$ docker rm <the-container-id>
+```
+
+> [!NOTE]
+> You can stop and remove a container in a single command by adding the force flag to the `docker rm` command. For example: `docker rm -f <the-container-id>`
+
+### Method-2: Remove a container using Docker Desktop
+
+1. Open Docker Desktop to the `Containers` view.
+2. Select the trash can icon under the **Actions** column for the container that you want to delete.
+3. In the confirmation dialog, select **Delete forever**.
+
+## Start the updated app container
+
+1. Now, start your updated app using the `docker run` command.
+
+```bash
+$ docker run -dp 127.0.0.1:3000:3000 getting-started
+```
+
+2. Refresh your browser on http://localhost:3000 and you should see your updated help text.
+
+## Summary
+
+In this section, you learned how to update and rebuild an image, as well as how to stop and remove a container.

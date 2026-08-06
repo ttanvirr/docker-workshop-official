@@ -3,6 +3,7 @@
 1. [Overview](#overview-of-the-docker-workshop)
 2. [Part 1: Containerize an application](#part-1-containarize-an-application)
 3. [Part 2: Update the application](#part-2-update-the-application)
+4. [Part 3: Share the application](#part-3-share-the-application)
 
 # Overview of the Docker workshop
 
@@ -134,7 +135,7 @@ $ docker run -dp 127.0.0.1:3000:3000 getting-started
 
 You probably saw an error like this:
 
-```bash
+```
 docker: Error response from daemon:......: Bind for 127.0.0.1:3000 failed: port is already allocated.
 ```
 
@@ -184,3 +185,60 @@ $ docker run -dp 127.0.0.1:3000:3000 getting-started
 ## Summary
 
 In this section, you learned how to update and rebuild an image, as well as how to stop and remove a container.
+
+# Part 3: Share the application
+
+Now that you've built an image, you can share it. To share Docker images, you have to use a Docker registry. The default registry is Docker Hub and is where all of the images you've used have come from.
+
+## Create a repository
+
+To push an image, you first need to create a repository on Docker Hub.
+
+1. Sign up or Sign in to [Docker Hub](#https://hub.docker.com/).
+2. Select the `Create Repository` button.
+3. For the repository name, use `getting-started`. Make sure the `Visibility` is `Public`.
+4. Select `Create`.
+
+## Push the image
+
+Let's try to push the image to Docker Hub.
+
+1. In the command line, you should run (match the repository name in Docker Hub):
+
+- Replace the username with your Docker hub username.
+
+```bash
+$ docker push YOUR-USER-NAME/getting-started
+```
+
+But you'll see an error like this:
+
+```
+Using default tag: latest
+The push refers to repository [docker.io/ttanvirr/getting-started]
+An image does not exist locally with the tag: ttanvirr/getting-started
+```
+
+This failure is expected because Docker is looking for an image name `ttanvirr/getting-started`, but your local image is still named `getting-started`.
+
+You can confirm this by running: `docker image ls`
+
+2. To fix this, use the `docker tag` command to give the `getting-started` image a new name. Replace `YOUR-USER-NAME` with your Docker ID.
+
+```bash
+$ docker tag getting-started YOUR-USER-NAME/getting-started
+```
+
+3. Now run the `docker push` command again. If you don't specify a `:tag`, Docker uses a tag called `latest`.
+
+```bash
+$ docker push YOUR-USER-NAME/getting-started
+```
+
+## Run the image on a new instance
+
+Now that your image has been built and pushed into a registry, you can run your app on any machine that has Docker installed. Try pulling and running your image on another computer or a cloud instance.
+
+## Summary
+
+In this section, you learned how to share your images by pushing them to a registry.

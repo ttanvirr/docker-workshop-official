@@ -1,13 +1,44 @@
-# Table of Contents
+# Table of Contents <!-- omit in toc -->
 
-1. [Overview](#overview-of-the-docker-workshop)
-2. [Part 1: Containerize an application](#part-1-containarize-an-application)
-3. [Part 2: Update the application](#part-2-update-the-application)
-4. [Part 3: Share the application](#part-3-share-the-application)
-5. [Part 4: Persist the DB](#part-4-persist-the-db)
-   - [Persist the todo data](#persist-the-todo-data)
+- [1. Overview of the Docker workshop](#1-overview-of-the-docker-workshop)
+- [2. Part 1: Containarize an application](#2-part-1-containarize-an-application)
+  - [2.1. Get the app](#21-get-the-app)
+  - [2.2. Build the app's image](#22-build-the-apps-image)
+  - [2.3. Start an app container](#23-start-an-app-container)
+  - [2.4. Summary](#24-summary)
+- [3. Part 2: Update the application](#3-part-2-update-the-application)
+  - [3.1. Update the source code](#31-update-the-source-code)
+  - [3.2. Remove the old container](#32-remove-the-old-container)
+    - [3.2.1. Method-1: Remove a container using the CLI](#321-method-1-remove-a-container-using-the-cli)
+    - [3.2.2. Method-2: Remove a container using Docker Desktop](#322-method-2-remove-a-container-using-docker-desktop)
+  - [3.3. Start the updated app container](#33-start-the-updated-app-container)
+  - [3.4. Summary](#34-summary)
+- [4. Part 3: Share the application](#4-part-3-share-the-application)
+  - [4.1. Create a repository](#41-create-a-repository)
+  - [4.2. Push the image](#42-push-the-image)
+  - [4.3. Run the image on a new instance](#43-run-the-image-on-a-new-instance)
+  - [4.4. Summary](#44-summary)
+- [5. Part 4: Persist the DB](#5-part-4-persist-the-db)
+  - [5.1. The container's filesystem](#51-the-containers-filesystem)
+    - [5.1.1. See this in practice](#511-see-this-in-practice)
+  - [5.2. Container volumes](#52-container-volumes)
+  - [5.3. Persist the todo data](#53-persist-the-todo-data)
+    - [5.3.1. Create a volume and start the container](#531-create-a-volume-and-start-the-container)
+      - [5.3.1.1. Method 1: create volume using CLI](#5311-method-1-create-volume-using-cli)
+      - [5.3.1.2. Method 2: create volume using Docker Desktop](#5312-method-2-create-volume-using-docker-desktop)
+    - [5.3.2. Verify that the data persists](#532-verify-that-the-data-persists)
+  - [5.4. Dive into the volume](#54-dive-into-the-volume)
+  - [5.5. Summary](#55-summary)
+- [6. Part 5: Use bind mounts](#6-part-5-use-bind-mounts)
+  - [6.1. Quick volume type comparisons](#61-quick-volume-type-comparisons)
+  - [6.2. Trying out bind mounts](#62-trying-out-bind-mounts)
+  - [6.3. Development containers](#63-development-containers)
+    - [6.3.1. Run your app in a development container](#631-run-your-app-in-a-development-container)
+      - [6.3.1.1. Method-1: Using CLI (Recommended)](#6311-method-1-using-cli-recommended)
+      - [6.3.1.2. Method-2: Using Docker Desktop](#6312-method-2-using-docker-desktop)
+    - [6.3.2. Develop your app with the development container](#632-develop-your-app-with-the-development-container)
 
-# Overview of the Docker workshop
+# 1. Overview of the Docker workshop
 
 This workshop contains step-by-step instructions on how to get started with Docker. We'll be working with a simple 'todo list manager' that runs on `Node.js`. This workshop shows you how to:
 
@@ -16,9 +47,9 @@ This workshop contains step-by-step instructions on how to get started with Dock
 - Deploy Docker applications using multiple containers with a database.
 - Run applications using Docker Compose.
 
-# Part 1: Containarize an application
+# 2. Part 1: Containarize an application
 
-## Get the app
+## 2.1. Get the app
 
 1. Clone the starter repo from: https://github.com/docker/getting-started-app.git.
 2. remove the existing `.git` folder if you want.
@@ -34,7 +65,7 @@ This workshop contains step-by-step instructions on how to get started with Dock
 │ ├── src/
 ```
 
-## Build the app's image
+## 2.2. Build the app's image
 
 To build the image, you'll need to use a `Dockerfile`. A **Dockerfile** is simply a text-based file with no file extension that contains a script of instructions. Docker uses this script to build a container image.
 
@@ -84,7 +115,7 @@ Finally, the `-t` flag tags your image. Think of this as a human-readable name f
 
 The `.` at the end of the docker build command tells Docker that it should look for the `Dockerfile` in the current directory.
 
-## Start an app container
+## 2.3. Start an app container
 
 1. Run your container using the `docker run` command and specify the name of the image you just created:
 
@@ -104,15 +135,15 @@ At this point, you have a running `todo list manager` with a few items.
 
 If you take a quick look at your containers on Docker Desktop (or using `docker ps` command), you should see at least one container running that's using the `getting-started` image and on port `3000`.
 
-## Summary
+## 2.4. Summary
 
 In this section, you learned the basics about creating a `Dockerfile` to build an image. Then you started a container and saw the running app.
 
-# Part 2: Update the application
+# 3. Part 2: Update the application
 
 In this part, you'll update the application and image. You'll also learn how to stop and remove a container.
 
-## Update the source code
+## 3.1. Update the source code
 
 In the following steps, you'll change the "empty text" when you don't have any todo list items to "You have no todo items yet! Add one above!"
 
@@ -143,13 +174,13 @@ docker: Error response from daemon:......: Bind for 127.0.0.1:3000 failed: port 
 
 The reason is that the old container is already using the host's port `3000` and only one process on the machine (containers included) can listen to a specific port. To fix this, you need to remove the old container.
 
-## Remove the old container
+## 3.2. Remove the old container
 
 To remove a container, you first need to stop it. Then, you can remove it.
 
 You can remove the old container using the CLI or Docker Desktop's graphical interface.
 
-### Method-1: Remove a container using the CLI
+### 3.2.1. Method-1: Remove a container using the CLI
 
 1. Get the ID of the container by using the `docker ps -a` command.
 
@@ -168,13 +199,13 @@ $ docker rm <the-container-id>
 > [!NOTE]
 > You can stop and remove a container in a single command by adding the force flag to the `docker rm` command. For example: `docker rm -f <the-container-id>`
 
-### Method-2: Remove a container using Docker Desktop
+### 3.2.2. Method-2: Remove a container using Docker Desktop
 
 1. Open Docker Desktop to the `Containers` view.
 2. Select the trash can icon under the **Actions** column for the container that you want to delete.
 3. In the confirmation dialog, select **Delete forever**.
 
-## Start the updated app container
+## 3.3. Start the updated app container
 
 1. Now, start your updated app using the `docker run` command.
 
@@ -184,15 +215,15 @@ $ docker run -dp 127.0.0.1:3000:3000 getting-started
 
 2. Refresh your browser on http://localhost:3000 and you should see your updated help text.
 
-## Summary
+## 3.4. Summary
 
 In this section, you learned how to update and rebuild an image, as well as how to stop and remove a container.
 
-# Part 3: Share the application
+# 4. Part 3: Share the application
 
 Now that you've built an image, you can share it. To share Docker images, you have to use a Docker registry. The default registry is Docker Hub and is where all of the images you've used have come from.
 
-## Create a repository
+## 4.1. Create a repository
 
 To push an image, you first need to create a repository on Docker Hub.
 
@@ -201,7 +232,7 @@ To push an image, you first need to create a repository on Docker Hub.
 3. For the repository name, use `getting-started`. Make sure the `Visibility` is `Public`.
 4. Select `Create`.
 
-## Push the image
+## 4.2. Push the image
 
 Let's try to push the image to Docker Hub.
 
@@ -237,23 +268,23 @@ $ docker tag getting-started YOUR-USER-NAME/getting-started
 $ docker push YOUR-USER-NAME/getting-started
 ```
 
-## Run the image on a new instance
+## 4.3. Run the image on a new instance
 
 Now that your image has been built and pushed into a registry, you can run your app on any machine that has Docker installed. Try pulling and running your image on another computer or a cloud instance.
 
-## Summary
+## 4.4. Summary
 
 In this section, you learned how to share your images by pushing them to a registry.
 
-# Part 4: Persist the DB
+# 5. Part 4: Persist the DB
 
 In case you didn't notice, your todo list is empty every single time you launch the container. Why is this? In this part, you'll dive into how the container is working.
 
-## The container's filesystem
+## 5.1. The container's filesystem
 
 When a container runs, it uses the various layers from an image for its filesystem. Each container also gets its own "scratch space" to create/update/remove files. Any changes WILL NOT BE SEEN in another container, even if they're using the same image.
 
-### See this in practice
+### 5.1.1. See this in practice
 
 To see this in action, you're going to start two containers. In one container, you'll create a file. In the other container, you'll check whether that same file exists.
 
@@ -281,7 +312,7 @@ To see this in action, you're going to start two containers. In one container, y
 
 The `greeting.txt` file created by the first container did not exist in the second container. That is because the writeable "top layer" of each container is isolated. Even though both containers shared the same underlying layers that make up the base image, the writable layer is unique to each container.
 
-## Container volumes
+## 5.2. Container volumes
 
 With the previous experiment, you saw that each container starts from the image definition each time it starts. While containers can create, update, and delete files, those changes are lost when you remove the container. With volumes, you can change all of this.
 
@@ -289,7 +320,7 @@ With the previous experiment, you saw that each container starts from the image 
 
 There are two main types of volumes. You'll eventually use both, but you'll start with 'volume mounts'.
 
-## Persist the todo data
+## 5.3. Persist the todo data
 
 By default, the todo app stores its data in a SQLite database at `/etc/todos/todo.db` in the container's filesystem. SQLite is simply a relational database that stores all the data in a single file. While this isn't the best for large-scale applications, it works for small demos. You'll learn how to switch this to a different database engine later.
 
@@ -297,13 +328,13 @@ With the database being a single file, if you can persist that file on the host 
 
 As mentioned, you're going to use a **volume mount**. Think of a volume mount as an opaque bucket of data. Docker fully manages the volume, including the storage location on disk. You only need to remember the name of the volume.
 
-### Create a volume and start the container
+### 5.3.1. Create a volume and start the container
 
 You can create the volume and start the container using the CLI or Docker Desktop's graphical interface.
 
-#### Method 1: create volume using CLI
+#### 5.3.1.1. Method 1: create volume using CLI
 
-<hr style="height:1px; margin-top:0" />
+---
 
 1. Create a volume:
 
@@ -323,9 +354,9 @@ You can create the volume and start the container using the CLI or Docker Deskto
 $ docker run -dp 127.0.0.1:3000:3000 --mount type=volume,src=todo-db,target=/etc/todos getting-started
 ```
 
-#### Method 2: create volume using Docker Desktop
+#### 5.3.1.2. Method 2: create volume using Docker Desktop
 
-<hr style="height:1px; margin-top:0" />
+---
 
 To create a volume:
 
@@ -353,7 +384,7 @@ To start the todo app container with the volume mounted:
 7. In Container path, specify `/etc/todos`.
 8. Select **Run**.
 
-### Verify that the data persists
+### 5.3.2. Verify that the data persists
 
 1. Once the container starts up, open the app and add a few items to your todo list.
    ![Todo list](doc-images/todo-list-1.png)
@@ -365,7 +396,7 @@ To start the todo app container with the volume mounted:
 
 You've now learned how to persist data.
 
-## Dive into the volume
+## 5.4. Dive into the volume
 
 A lot of people frequently ask "Where is Docker storing my data when I use a volume?" If you want to know, you can use the `docker volume inspect` command.
 
@@ -391,6 +422,211 @@ You should see output like the following:
 
 The `Mountpoint` is the actual location of the data on the disk. Note that on most machines, you will need to have root access to access this directory from the host.
 
-## Summary
+## 5.5. Summary
 
 In this section, you learned how to persist container data.
+
+# 6. Part 5: Use bind mounts
+
+In part 4, you used a **volume mount** to persist the data in your database wich is a great choice when you need somewhere persistent to store your application data.
+
+A **bind mount** is another type of mount, which lets you share a directory from the host's filesystem into the container. When working on an application, the container sees the changes you make to the code immediately, as soon as you save a file.
+
+In this chapter, you'll see how you can use bind mounts and a tool called `nodemon` to watch for file changes, and restart the application automatically. There are equivalent tools in most other languages and frameworks.
+
+## 6.1. Quick volume type comparisons
+
+The following are examples of a named volume and a bind mount using `--mount`:
+
+- Named volume: `type=volume,src=my-volume,target=/usr/local/data`
+- Bind mount: `type=bind,src=/path/to/data,target=/usr/local/data`
+
+The following table outlines the main differences between volume mounts and bind mounts.
+
+|                                              | Named volumes  | Bind mounts |
+| :------------------------------------------- | :------------- | :---------- |
+| Host location                                | Docker chooses | You decide  |
+| Populates new volume with container contents | Yes            | No          |
+| Supports Volume Drivers                      | Yes            | No          |
+
+## 6.2. Trying out bind mounts
+
+Before looking at how you can use bind mounts, you can run a quick experiment to get a practical understanding of how bind mounts work.
+
+1. Open/run docker desktop.
+2. Verify that your `getting-started-app` directory is in a directory defined in Docker Desktop's file sharing setting. This setting defines which parts of your filesystem you can share with containers.
+
+   > [!NOTE]
+   > The **File sharing** tab is only available in Hyper-V mode (not in WSL 2). Files are automatically shared in WSL 2 mode and Windows container mode.
+
+3. Open a terminal and navigate to the `getting-started-app` directory.
+
+4. Run the following command to start `bash` in an `ubuntu` container with a bind mount.
+
+   ```bash
+   docker run -it --mount type=bind,src=.,target=/src ubuntu bash
+   ```
+
+   The `--mount type=bind` option tells Docker to create a bind mount, where `src` is the current working directory on your host machine (`getting-started-app`), and `target` is where that directory should appear inside the container (`/src`).
+
+5. After running the command, Docker starts an interactive `bash` session in the root directory of the container's filesystem.
+
+   ```
+   root@ac1237fad8db:/# pwd
+   /
+   root@ac1237fad8db:/# ls
+   bin   dev  home  media  opt   root  sbin  srv  tmp  var
+   boot  etc  lib   mnt    proc  run   src   sys  usr
+   ```
+
+   > [!TIP]
+   > You can also see this filesystem via Docker Desktop, by clicking on the running ubuntu container and then `Files`.
+
+6. Change directory to the `src` directory.
+
+   This is the directory that you mounted when starting the container. Listing the contents of this directory displays the same files as in the `getting-started-app` directory on your host machine.
+
+   ```
+   root@ac1237fad8db:/# cd src
+   root@ac1237fad8db:/src# ls
+   Dockerfile node_modules package.json package-lock.json spec src
+   ```
+
+7. Create a new file named `myfile.txt`.
+
+   ```
+   root@ac1237fad8db:/src# touch myfile.txt
+   root@ac1237fad8db:/src# ls
+   Dockerfile  myfile.txt  node_modules  package.json  package-lock.json  spec  src
+   ```
+
+8. Open the `getting-started-app` directory on the host and observe that the `myfile.txt` file is in the directory too.
+
+9. From the host, delete the `myfile.txt` file.
+
+10. In the container, list the contents of the `src` directory once more. Observer that the file is now gone.
+11. Stop the interactive container session with `Ctrl`+`D`
+
+That's all for a brief introduction to bind mounts. This procedure demonstrated how files are shared between the host and the container, and how changes are immediately reflected on both sides. Now you can use bind mounts to develop software.
+
+## 6.3. Development containers
+
+Using bind mounts is common for local development setups. The advantage is that the development machine doesn’t need to have all of the build tools and environments installed. With a single `docker run` command, Docker pulls dependencies and tools.
+
+### 6.3.1. Run your app in a development container
+
+The following steps describe how to run a development container with a bind mount that does the following:
+
+- Mount your source code into the container
+- Install all dependencies
+- Start `nodemon` to watch for filesystem changes
+
+You can use the CLI or Docker Desktop to run your container with a bind mount.
+
+#### 6.3.1.1. Method-1: Using CLI (Recommended)
+
+---
+
+1. Make sure you don't have any `getting-started` containers currently running.
+2. Run the following command from the `getting-started-app` directory.
+
+   ```bash
+   $ docker run -dp 127.0.0.1:3000:3000 \
+   -w /app --mount type=bind,src=.,target=/app \
+   node:24-alpine \
+   sh -c "npm install && npm run dev"
+   ```
+
+   The following is a breakdown of the command:
+   - `-dp 127.0.0.1:3000:3000` - Run in detached (background) mode and create a port mapping
+   - `-w /app` - sets the "working directory" in the container that the command will run from
+   - `--mount type=bind,src=.,target=/app` - bind mount the current directory from the host into the `/app` directory in the container
+   - `node:24-alpine` - the image to use. Note that this is the base image for your app from the Dockerfile
+   - `sh -c "npm install && npm run dev"` - the command. You're starting a shell using `sh` (alpine doesn't have `bash`) and running `npm install` to install packages and then running `npm run dev` to start the development server. If you look in the `package.json`, you'll see that the `dev` script starts `nodemon`.
+
+3. You can watch the logs using `docker logs <container-id>`. You'll know you're ready to go when you see this:
+
+   ```bash
+   $ docker logs -f <container-id>
+   nodemon -L src/index.js
+   [nodemon] 2.0.20
+   [nodemon] to restart at any time, enter `rs`
+   [nodemon] watching path(s): _._
+   [nodemon] watching extensions: js,mjs,json
+   [nodemon] starting `node src/index.js`
+   Using sqlite database at /etc/todos/todo.db
+   Listening on port 3000
+   ```
+
+   When you're done watching the logs, exit out by hitting `Ctrl+C`.
+
+   > [!TIP]
+   > You can view logs by clicking on your container on Docker Desktop
+
+#### 6.3.1.2. Method-2: Using Docker Desktop
+
+---
+
+Make sure you don't have any `getting-started` containers currently running.
+
+Run the image with a bind mount.
+
+1. Select the search box at the top of Docker Desktop.
+2. In the search box, search for the image, `getting-started`.
+3. Select `Images` tab
+
+   > [!TIP]
+   > Use the search filter to filter images and only show Local images.
+
+4. Select your image and then select `Run`.
+5. Select `Optional settings`.
+6. In Host path, specify the path to the `getting-started-app` directory on your host machine.
+7. In Container path, specify `/app`.
+8. Select `Run`.
+
+You can watch the container logs using Docker Desktop.
+
+1. Select `Containers` in Docker Desktop.
+2. Select your container name and select `Logs` tab.
+
+   You'll know you're ready to go when you see this:
+
+   ```
+   nodemon -L src/index.js
+   [nodemon] 2.0.20
+   [nodemon] to restart at any time, enter `rs`
+   [nodemon] watching path(s): _._
+   [nodemon] watching extensions: js,mjs,json
+   [nodemon] starting `node src/index.js`
+   Using sqlite database at /etc/todos/todo.db
+   Listening on port 3000
+   ```
+
+[⬆️ Return to Table of contents](#table-of-contents)
+
+### 6.3.2. Develop your app with the development container
+
+Update your app on your host machine and see the changes reflected in the container.
+
+1. In the `src/static/js/app.js` file, on line 109 (may vary), change the "Add Item" button to simply say "Add":
+
+   ```
+   - {submitting ? 'Adding...' : 'Add Item'}
+   + {submitting ? 'Adding...' : 'Add'}
+   ```
+
+   Save the file.
+
+2. Refresh the page in your web browser, and you should see the change reflected almost immediately because of the bind mount. `Nodemon` detects the change and restarts the server. If you get an error, try refreshing after a few seconds.
+
+3. Feel free to make any other changes you'd like to make. Each time you make a change and save a file, the change is reflected in the container because of the bind mount. When `Nodemon` detects a change, it restarts the app inside the container automatically. When you're done, stop the container and build your new image using:
+
+   ```bash
+   $ docker build -t getting-started .
+   ```
+
+## 6.4. Summary <!-- omit in toc -->
+
+At this point, you can persist your database and see changes in your app as you develop without rebuilding the image.
+
+In addition to volume mounts and bind mounts, Docker also supports other mount types and storage drivers for handling more complex and specialized use cases.

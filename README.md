@@ -37,6 +37,11 @@
       - [6.3.1.1. Method-1: Using CLI (Recommended)](#6311-method-1-using-cli-recommended)
       - [6.3.1.2. Method-2: Using Docker Desktop](#6312-method-2-using-docker-desktop)
     - [6.3.2. Develop your app with the development container](#632-develop-your-app-with-the-development-container)
+- [7. Part 6: Multi container apps](#7-part-6-multi-container-apps)
+  - [7.1. Container networking](#71-container-networking)
+  - [7.2. Start MySQL](#72-start-mysql)
+  - [7.3. Connect to MySQL](#73-connect-to-mysql)
+  - [7.4. Run your app with MySQL](#74-run-your-app-with-mysql)
 
 # 1. Overview of the Docker workshop
 
@@ -630,3 +635,197 @@ Update your app on your host machine and see the changes reflected in the contai
 At this point, you can persist your database and see changes in your app as you develop without rebuilding the image.
 
 In addition to volume mounts and bind mounts, Docker also supports other mount types and storage drivers for handling more complex and specialized use cases.
+
+# 7. Part 6: Multi container apps
+
+Up to this point, you've been working with single container apps. But, now you will add `MySQL` to the application stack. Now, "Where will MySQL run? Install it in the same container or run it separately?" In general, each container should do one thing and do it well. The following are a few reasons to run the container separately:
+
+- There's a good chance you'd have to scale APIs and front-ends differently than databases.
+- Separate containers let you version and update versions in isolation.
+- While you may use a container for the database locally, you may want to use a managed service for the database in production. You don't want to ship your database engine with your app then.
+- Running multiple processes will require a process manager (the container only starts one process), which adds complexity to container startup/shutdown.
+
+And there are more reasons. So, like the following diagram, it's best to run your app in multiple containers.
+
+![Multi container app](doc-images/multi-container-app-1.png)
+
+## 7.1. Container networking
+
+Containers, by default, run in isolation and don't know anything about other processes or containers. So, how do you allow one container to talk to another? The answer is networking. `If you place the two containers on the same network, they can talk to each other.`
+
+## 7.2. Start MySQL
+
+There are two ways to put a container on a network:
+
+- Assign the network when starting the container.
+- Connect an already running container to a network.
+
+In the following steps, you'll create the network first and then attach the MySQL container at startup.
+
+1. Open/run Docker Desktop
+
+2. Create the network named 'todo-app'
+
+   ```bash
+   $ docker network create todo-app
+   ```
+
+3. Start a `MySQL` container and attach it to the network. You're also going to define a few `environment variables` that the database will use to initialize the database.
+
+   ```bash
+   $ docker run -d \
+   --network todo-app --network-alias mysql \
+   -v todo-mysql-data:/var/lib/mysql \
+   -e MYSQL_ROOT_PASSWORD=secret \
+   -e MYSQL_DATABASE=todos \
+   mysql:8.0
+   ```
+
+   In a later section, you'll learn more about the `--network-alias` flag.
+
+   > [!TIP]
+   > You'll notice a volume named `todo-mysql-data` in the above command that is mounted at `/var/lib/mysql`, which is where MySQL stores its data. However, you never ran a 'docker volume create' command. Docker recognizes you want to use a named volume and creates one automatically for you.
+
+4. To confirm you have the database up and running, connect to the database and verify that it connects.
+
+   ```bash
+   $ docker exec -it <mysql-container-id> mysql -u root -p
+   ```
+
+   When the password prompt comes up, type in `secret`. In the MySQL shell, list the databases and verify you see the `todos` database.
+
+   ```
+   mysql> SHOW DATABASES;
+   ```
+
+   You should see output that looks like this:
+
+   ```
+   +--------------------+
+   | Database           |
+   +--------------------+
+   | information_schema |
+   | mysql              |
+   | performance_schema |
+   | sys                |
+   | todos              |
+   +--------------------+
+   5 rows in set (0.00 sec)
+   ```
+
+5. Exit the MySQL shell to return to the shell on your machine.
+
+   ```sql
+   mysql> exit
+   ```
+
+   You now have a `todos` database and it's ready for you to use.
+
+## 7.3. Connect to MySQL
+
+Now that you know MySQL is up and running, you can use it. But, how do you use it? If you run another container on the same network, how do you find the container? Remember that each container has its own `IP address`.
+
+To answer the questions above and better understand container networking, you're going to make use of the `nicolaka/netshoot` container, which ships with a lot of tools that are useful for troubleshooting or debugging networking issues.
+
+1. Start a new container using the `nicolaka/netshoot` image. Make sure to connect it to the same network.
+
+   ```bash
+   $ docker run -it --network todo-app nicolaka/netshoot
+   ```
+
+2. Inside the container, use the `dig` command, which is a useful DNS tool. You're going to look up the IP address for the hostname `mysql`.
+
+   ```netshoot
+   $ dig mysql
+   ```
+
+   You should get an output which includes the following.
+
+   ```
+   ;; QUESTION SECTION:
+   ;mysql.				IN	A
+
+   ;; ANSWER SECTION:
+   mysql.			600	IN	A	172.23.0.2
+
+   ;; Query time: 0 msec
+   ;; SERVER: 127.0.0.11#53(127.0.0.11)
+   ;; WHEN: Tue Oct 01 23:47:24 UTC 2019
+   ;; MSG SIZE  rcvd: 44
+   ```
+
+   In the "ANSWER SECTION", you will see an `A` record for `mysql` that resolves to `172.23.0.2` (your IP address will most likely have a different value). While `mysql` isn't normally a valid hostname, Docker was able to resolve it to the IP address of the container that had that network alias. Remember, you used the `--network-alias` earlier.
+
+   What this means is that your app only simply needs to connect to a host named `mysql` and it'll talk to the database.
+
+3. Press `Ctrl`+`D` to exit netshoot
+
+## 7.4. Run your app with MySQL
+
+The todo app supports the setting of a few environment variables to specify MySQL connection settings. They are:
+
+- `MYSQL_HOST` - the hostname for the running MySQL server
+- `MYSQL_USER` - the username to use for the connection
+- `MYSQL_PASSWORD` - the password to use for the connection
+- `MYSQL_DB` - the database to use once connected
+
+You can now start your dev-ready container.
+
+1. Specify each of the previous environment variables, as well as connect the container to your app network. Make sure that you are in the `getting-started-app` directory when you run this command.
+
+   ```bash
+   $ docker run -dp 127.0.0.1:3000:3000 \
+   -w /app -v ".:/app" \
+   --network todo-app \
+   -e MYSQL_HOST=mysql \
+   -e MYSLQ_USER=root \
+   -e MYSLQ_PASSWORD=secret \
+   -e MYSLQ_DB=todos \
+   node:24-alpine \
+   sh -c "npm install && npm run dev"
+   ```
+
+   > [!NOTE]
+   > The variable names must match, because they are used in the app.
+
+2. If you look at the logs for the container (`docker logs -f <container-id>`), you should see a message similar to the following, which indicates it's using the mysql database.
+
+   ```bash
+   [nodemon] 3.1.11
+   [nodemon] to restart at any time, enter `rs`
+   [nodemon] watching path(s): *.*
+   [nodemon] watching extensions: js,mjs,cjs,json
+   [nodemon] starting `node src/index.js`
+   Waiting for mysql:3306.
+   Connected!
+   Connected to mysql db at host mysql
+   Listening on port 3000
+   ```
+
+   > [!NOTE]
+   > If you face any issue or your database is still using `sqlite`, check if you wrote all the environment variables correctly and your `mysql` container is running.
+
+3. Open the app in your browser and add a few items to your todo list.
+4. Connect to the mysql database and prove that the items are being written to the database. Remember, the password is secret.
+
+   ```bash
+   $ docker exec -it <mysql-container-id> mysql -p todos
+   ```
+
+   And in the mysql shell, run the following:
+
+   ```
+   mysql> select * from todo_items;
+   +--------------------------------------+--------------------+-----------+
+   | id                                   | name               | completed |
+   +--------------------------------------+--------------------+-----------+
+   | c906ff08-60e6-44e6-8f49-ed56a0853e85 | Do amazing things! |         0 |
+   | 2912a79e-8486-4bc3-a4c5-460793a575ab | Be awesome!        |         1 |
+   +--------------------------------------+--------------------+-----------+
+   ```
+
+   Your table will look different because it has your items. But, you should see them stored there.
+
+## 7.5. Summary <!-- omit in toc -->
+
+At this point, you have an application that now stores its data in an external database running in a separate container. You learned a little bit about container networking and service discovery using DNS.

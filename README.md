@@ -52,8 +52,8 @@
 - [9. Image-building best practices](#9-image-building-best-practices)
   - [9.1. Image layering](#91-image-layering)
   - [9.2. Layer caching](#92-layer-caching)
-  - [Multi-stage builds](#multi-stage-builds)
-    - [React example](#react-example)
+  - [9.3. Multi-stage builds](#93-multi-stage-builds)
+    - [9.3.1. React example](#931-react-example)
 
 # 1. Overview of the Docker workshop
 
@@ -1185,14 +1185,14 @@ To fix it, you need to restructure your Dockerfile to help support the caching o
 
     First off, you should notice that the build was much faster. And, you'll see that several steps are using previously cached layers. Pushing and pulling this image and updates to it will be much faster as well.
 
-## Multi-stage builds
+## 9.3. Multi-stage builds
 
 Multi-stage builds are an incredibly powerful tool to help use multiple stages to create an image. There are several advantages for them:
 
 - Separate build-time dependencies from runtime dependencies
 - Reduce overall image size by shipping only what your app needs to run
 
-### React example
+### 9.3.1. React example
 
 When building React applications, you need a Node environment to compile the JS code (typically JSX), SASS stylesheets, and more into static HTML, JS, and CSS. If you aren't doing server-side rendering, you don't even need a Node environment for your production build. You can ship the static resources in a static nginx container.
 
@@ -1215,6 +1215,6 @@ Tt uses the `node:24-alpine` image to perform the build (maximizing layer cachin
 > [!TIP]
 > This React example is for illustration purposes. The `getting-started` todo app is a `Node.js` backend application, not a React frontend.
 
-## Summary <!-- omit in toc -->
+## 9.4. Summary <!-- omit in toc -->
 
 In this section, you learned a few image building best practices, including layer caching and multi-stage builds.

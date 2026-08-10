@@ -49,6 +49,11 @@
   - [8.4. Run the application stack](#84-run-the-application-stack)
   - [8.5. See the app stack in Docker Desktop Dashboard](#85-see-the-app-stack-in-docker-desktop-dashboard)
   - [8.6. Tear it all down](#86-tear-it-all-down)
+- [9. Image-building best practices](#9-image-building-best-practices)
+  - [9.1. Image layering](#91-image-layering)
+  - [9.2. Layer caching](#92-layer-caching)
+  - [Multi-stage builds](#multi-stage-builds)
+    - [React example](#react-example)
 
 # 1. Overview of the Docker workshop
 
@@ -151,6 +156,8 @@ If you take a quick look at your containers on Docker Desktop (or using `docker 
 
 In this section, you learned the basics about creating a `Dockerfile` to build an image. Then you started a container and saw the running app.
 
+[⬆️ Return to Table of contents](#table-of-contents)
+
 # 3. Part 2: Update the application
 
 In this part, you'll update the application and image. You'll also learn how to stop and remove a container.
@@ -231,6 +238,8 @@ $ docker run -dp 127.0.0.1:3000:3000 getting-started
 
 In this section, you learned how to update and rebuild an image, as well as how to stop and remove a container.
 
+[⬆️ Return to Table of contents](#table-of-contents)
+
 # 4. Part 3: Share the application
 
 Now that you've built an image, you can share it. To share Docker images, you have to use a Docker registry. The default registry is Docker Hub and is where all of the images you've used have come from.
@@ -287,6 +296,8 @@ Now that your image has been built and pushed into a registry, you can run your 
 ## 4.4. Summary
 
 In this section, you learned how to share your images by pushing them to a registry.
+
+[⬆️ Return to Table of contents](#table-of-contents)
 
 # 5. Part 4: Persist the DB
 
@@ -437,6 +448,8 @@ The `Mountpoint` is the actual location of the data on the disk. Note that on mo
 ## 5.5. Summary
 
 In this section, you learned how to persist container data.
+
+[⬆️ Return to Table of contents](#table-of-contents)
 
 # 6. Part 5: Use bind mounts
 
@@ -643,6 +656,8 @@ At this point, you can persist your database and see changes in your app as you 
 
 In addition to volume mounts and bind mounts, Docker also supports other mount types and storage drivers for handling more complex and specialized use cases.
 
+[⬆️ Return to Table of contents](#table-of-contents)
+
 # 7. Part 6: Multi container apps
 
 Up to this point, you've been working with single container apps. But, now you will add `MySQL` to the application stack. Now, "Where will MySQL run? Install it in the same container or run it separately?" In general, each container should do one thing and do it well. The following are a few reasons to run the container separately:
@@ -836,6 +851,8 @@ You can now start your dev-ready container.
 ## 7.5. Summary <!-- omit in toc -->
 
 At this point, you have an application that now stores its data in an external database running in a separate container. You learned a little bit about container networking and service discovery using DNS.
+
+[⬆️ Return to Table of contents](#table-of-contents)
 
 # 8. Use Docker Compose
 
@@ -1071,3 +1088,133 @@ When you're ready to tear it all down, simply run `docker compose down` or hit t
 ## 8.7. Summary <!-- omit in toc -->
 
 In this section, you learned about Docker Compose and how it helps you simplify the way you define and share multi-service applications.
+
+[⬆️ Return to Table of contents](#table-of-contents)
+
+# 9. Image-building best practices
+
+## 9.1. Image layering
+
+Using the `docker image history` command, you can see the command that was used to create each layer within an image.
+
+1. Use the `docker image history` command to see the layers in the `getting-started` image you created.
+
+   ```bash
+   $ docker image history getting-started
+   ```
+
+   If you look at the output each of the lines represents a layer in the image. The display shows the base at the bottom with the newest layer at the top. Using this, you can also quickly see the size of each layer, helping diagnose large images.
+
+2. You'll notice that several of the lines are truncated. If you add the `--no-trunc` flag, you'll get the full output.
+
+   ```bash
+   $ docker image history --no-trunc getting-started
+   ```
+
+## 9.2. Layer caching
+
+Now, there's an important lesson to learn to help decrease build times for your container images.
+
+Once a layer changes, all downstream layers are recreated as well.
+
+Look at the following Dockerfile you created for the getting started app.
+
+```dockerfile
+# syntax=docker/dockerfile:1
+FROM node:24-alpine
+WORKDIR /app
+COPY . .
+RUN npm install --omit=dev
+CMD ["node", "src/index.js"]
+EXPOSE 3000
+```
+
+Going back to the image history output, you see that each command in the Dockerfile becomes a new layer in the image. You might remember that when you made a change to the image, the dependencies had to be reinstalled. It doesn't make much sense to ship around the same dependencies every time you build.
+
+To fix it, you need to restructure your Dockerfile to help support the caching of the dependencies.
+
+1.  Update the Dockerfile to copy in the `package.json` first, install dependencies, and then copy everything else in.
+
+    ```dockerfile
+    # syntax=docker/dockerfile:1
+    FROM node:24-alpine
+    WORKDIR /app
+    COPY package.json package-lock.json ./
+    RUN npm install --omit=dev
+    COPY . .
+    CMD ["node", "src/index.js"]
+    ```
+
+2.  Build a new image:
+
+    ```bash
+    $ docker build -t getting-started .
+    ```
+
+    You should see output like the following.
+
+    ```
+    [+] Building 16.1s (10/10) FINISHED
+    => [1/5] FROM docker.io/library/node:24-alpine
+    => CACHED [2/5] WORKDIR /app
+    => [3/5] COPY package.json package-lock.json ./
+    => [4/5] RUN npm install --omit=dev
+    => [5/5] COPY . .
+    => exporting to image
+    => => exporting layers
+    => => writing image     sha256:d6f819013566c54c50124ed94d5e66c452325327217f4f04399b45f94e37d25
+    => => naming to docker.io/library/getting-started
+    ```
+
+3.  Now, make a change to the `src/static/index.html` file. For example, change the `<title>` to "The Awesome Todo App".
+
+4.  Build the Docker image now using `docker build -t getting-started .` again. This time, your output should look a little different.
+
+    ```
+    [+] Building 1.2s (10/10) FINISHED
+    => [1/5] FROM docker.io/library/node:24-alpine
+    => CACHED [2/5] WORKDIR /app
+    => CACHED [3/5] COPY package.json package-lock.json ./
+    => CACHED [4/5] RUN npm install
+    => [5/5] COPY . .
+    => exporting to image
+    => => exporting layers
+    => => writing image sha256:91790c87bcb096a83c2bd4eb512bc8b134c757cda0bdee4038187f98148e2eda
+    => => naming to docker.io/library/getting-started
+    ```
+
+    First off, you should notice that the build was much faster. And, you'll see that several steps are using previously cached layers. Pushing and pulling this image and updates to it will be much faster as well.
+
+## Multi-stage builds
+
+Multi-stage builds are an incredibly powerful tool to help use multiple stages to create an image. There are several advantages for them:
+
+- Separate build-time dependencies from runtime dependencies
+- Reduce overall image size by shipping only what your app needs to run
+
+### React example
+
+When building React applications, you need a Node environment to compile the JS code (typically JSX), SASS stylesheets, and more into static HTML, JS, and CSS. If you aren't doing server-side rendering, you don't even need a Node environment for your production build. You can ship the static resources in a static nginx container.
+
+```dockerfile
+# syntax=docker/dockerfile:1
+FROM node:24-alpine AS build
+WORKDIR /app
+COPY package* ./
+RUN npm install
+COPY public ./public
+COPY src ./src
+RUN npm run build
+
+FROM nginx:alpine
+COPY --from=build /app/build /usr/share/nginx/html
+```
+
+Tt uses the `node:24-alpine` image to perform the build (maximizing layer caching) and then copies the output into an nginx container.
+
+> [!TIP]
+> This React example is for illustration purposes. The `getting-started` todo app is a `Node.js` backend application, not a React frontend.
+
+## Summary <!-- omit in toc -->
+
+In this section, you learned a few image building best practices, including layer caching and multi-stage builds.
